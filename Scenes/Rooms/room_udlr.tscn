@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3 uid="uid://lt4mrx8xx6q8"]
+
+[ext_resource type="PackedScene" uid="uid://ggfjq3rm2d2s" path="res://Scenes/Rooms/room_base.tscn" id="1_mdst4"]
+[ext_resource type="PackedScene" uid="uid://cnqwm5up3l002" path="res://Scenes/room_spawner.tscn" id="2_wl1wl"]
+
+[node name="Room" instance=ExtResource("1_mdst4")]
+
+[node name="Up" parent="." index="2" instance=ExtResource("2_wl1wl")]
+position = Vector2(0, -20)
+
+[node name="Down" parent="." index="3" instance=ExtResource("2_wl1wl")]
+position = Vector2(0, 20)
+
+[node name="Left" parent="." index="4" instance=ExtResource("2_wl1wl")]
+position = Vector2(-20, 0)
+
+[node name="Right" parent="." index="5" instance=ExtResource("2_wl1wl")]
+position = Vector2(20, 0)

@@ -1,0 +1,19 @@
+[gd_scene load_steps=4 format=3 uid="uid://caqa0fcwueaxc"]
+
+[ext_resource type="PackedScene" uid="uid://ggfjq3rm2d2s" path="res://Scenes/Rooms/room_base.tscn" id="1_0o8gu"]
+[ext_resource type="Texture2D" uid="uid://bf843clfqrtf0" path="res://Art/Rooms/room_udl.png" id="1_hnmpv"]
+[ext_resource type="PackedScene" uid="uid://cnqwm5up3l002" path="res://Scenes/room_spawner.tscn" id="2_40fye"]
+
+[node name="Room" instance=ExtResource("1_0o8gu")]
+
+[node name="Sprite2D" parent="." index="0"]
+texture = ExtResource("1_hnmpv")
+
+[node name="Up" parent="." index="2" instance=ExtResource("2_40fye")]
+position = Vector2(0, -20)
+
+[node name="Down" parent="." index="3" instance=ExtResource("2_40fye")]
+position = Vector2(0, 20)
+
+[node name="Left" parent="." index="4" instance=ExtResource("2_40fye")]
+position = Vector2(-20, 0)

@@ -1,0 +1,183 @@
+extends Area2D
+
+@onready var down = load("res://Scenes/Rooms/room_d.tscn")
+@onready var downleft = load("res://Scenes/Rooms/room_dl.tscn")
+@onready var downleftright = load("res://Scenes/Rooms/room_dlr.tscn")
+@onready var downright = load("res://Scenes/Rooms/room_dr.tscn")
+@onready var left = load("res://Scenes/Rooms/room_l.tscn")
+@onready var leftright = load("res://Scenes/Rooms/room_lr.tscn")
+@onready var right = load("res://Scenes/Rooms/room_r.tscn")
+@onready var up = load("res://Scenes/Rooms/room_u.tscn")
+@onready var updown = load("res://Scenes/Rooms/room_ud.tscn")
+@onready var updownleft = load("res://Scenes/Rooms/room_udl.tscn")
+@onready var updownleftright = load("res://Scenes/Rooms/room_udlr.tscn")
+@onready var updownright = load("res://Scenes/Rooms/room_udr.tscn")
+@onready var upleft = load("res://Scenes/Rooms/room_ul.tscn")
+@onready var upleftright = load("res://Scenes/Rooms/room_ulr.tscn")
+@onready var upright = load("res://Scenes/Rooms/room_ur.tscn")
+
+#dictionary for room numbers, calculated by getting the sum of bit flags of the room. (updownleft = 1 + 2 + 4 = 7)
+@onready var room_values = {1: up, 2:left, 3:upleft, 4:down, 5:updown, 6:downleft, 7:updownleft, 8:right, 9:upright, 10:leftright, 11:upleftright, 12:downright, 13:updownright, 14:downleftright, 15:updownleftright}
+
+#bit flag for directions
+var direction_number : int
+
+#declare map size
+var max_cell_count :int = 150
+
+func _ready():
+	await get_tree().physics_frame
+	set_direction()
+	initiate_spawn_algorithm()
+
+#sets the main direction of room that the node should spawn (opposite of current)
+#assigns a bit flag for each direction
+func set_direction():
+	match(position):
+		Vector2(0, 20):
+			#Up
+			direction_number = 1
+		Vector2(20, 0):
+			#Left
+			direction_number = 2
+		Vector2(0, -20):
+			#Down
+			direction_number = 4
+		Vector2(-20, 0):
+			#Right
+			direction_number = 8
+
+#executes methods in order. this method is also called by a child when a spawning error occurs, reusing the code.
+func initiate_spawn_algorithm():
+	setup_variables()
+	detect_spawnable_areas()
+	spawn_rooms()
+
+#declare room variables
+var room
+var spawnable_locations = []
+var spawnable_rooms = []
+
+#resets state of arrays in case code needs to be reused
+func setup_variables():
+	spawnable_locations = []
+	spawnable_rooms = []
+	
+#gets the max number of directions that the spawned room can have based on von neumann neighborhood
+func detect_spawnable_areas():
+	$Up.force_raycast_update()
+	if $Up.is_colliding() == false:
+		spawnable_locations.append(1)
+	$Left.force_raycast_update()
+	if $Left.is_colliding() == false:
+		spawnable_locations.append(2)
+	$Down.force_raycast_update()
+	if $Down.is_colliding() == false:
+		spawnable_locations.append(4)
+	$Right.force_raycast_update()
+	if $Right.is_colliding() == false:
+		spawnable_locations.append(8)
+	spawnable_locations.append(direction_number)
+	
+	get_all_combinations(spawnable_locations)
+	
+	#entirely optional, but good for customization
+	manipulate_map()
+	
+	#remove closing rooms from list if other options are possible. this is to prevent the map from closing prematurely
+	if (spawnable_rooms.size() > 1):
+		spawnable_rooms.erase(1)
+		spawnable_rooms.erase(2)
+		spawnable_rooms.erase(4)
+		spawnable_rooms.erase(8)
+
+#MUST READ!!!
+#manipulate map generation with custom room pool, branch_depth can be used as a condition for more complex shaped maps
+#first number returns a room_type that calls its respective value from the dictionary
+#second number dictates how many times the value should be inserted (more times = better chance of spawning).
+#if you dont want any modifications, clear function body and replace it with pass instead
+func manipulate_map():
+	if get_parent().branch_depth < 6:
+		increase_spawn_frequency(5, 1)
+		increase_spawn_frequency(10, 80)
+	if get_parent().branch_depth > 6 and get_parent().branch_depth < 10:
+		increase_spawn_frequency(7, 4)
+		increase_spawn_frequency(11, 9)
+		increase_spawn_frequency(13, 2)
+		increase_spawn_frequency(14, 4)
+
+#increases the pick chance of a certain room by putting more of it in the selection pool
+func increase_spawn_frequency(room_type: int, frequency: int):
+	if (spawnable_rooms.has(room_type)):
+		while (frequency > 0):
+			spawnable_rooms.append(room_type)
+			frequency -= 1
+
+#returns an array of all possible spawnable rooms given the preconditions
+func get_all_combinations(spawn_locs):
+	generate_combinations(spawn_locs, [], 0, spawnable_rooms)
+	return spawnable_rooms
+
+#defines the loop that iterates through possible spawnable rooms
+func generate_combinations(spawn_locs, current_combination, index, result):
+	if index == spawn_locs.size():
+		if current_combination.size() > 0:
+			var group_sum = 0
+			if current_combination.has(direction_number):
+				for num in current_combination:
+					group_sum += num
+				spawnable_rooms.append(group_sum)
+		return
+
+	# Include current element in the combination
+	generate_combinations(spawn_locs, current_combination + [spawn_locs[index]], index + 1, result)
+	
+	# Exclude current element from the combination
+	generate_combinations(spawn_locs, current_combination, index + 1, result)
+
+#rng for random selection
+#has_spawned flag to prevent the object from spawning another room after it has already done so (see on_area_entered)
+var rng = RandomNumberGenerator.new()
+var has_spawned = false
+
+func spawn_rooms():
+	has_spawned = false
+	#1 physics frame is fastest possible time between iterations. Use a timer instead if you want slower intervals
+	await get_tree().physics_frame
+
+	#selects a room to spawn based on the available room selection 
+	var newRoom
+	var cell_count = get_node("/root/MapGenerator/CanvasLayer/Label").count
+	var num = rng.randi_range(1, spawnable_rooms.size())
+	room = room_values[spawnable_rooms[num-1]]
+	
+	#spawns a branching room (if possible) if max rooms is not yet achieved, spawns a clsing room if it is.
+	if (cell_count < max_cell_count):
+		newRoom = room.instantiate()
+	else:
+		newRoom = room_values[direction_number].instantiate()
+	
+	#deletes the matching spawning node of the child to prevent it from attempting to spawn a room ontop of its parent
+	match(direction_number):
+		1:
+			newRoom.get_node("Up").queue_free()
+		2:
+			newRoom.get_node("Left").queue_free()
+		4:
+			newRoom.get_node("Down").queue_free()
+		8:
+			newRoom.get_node("Right").queue_free()
+	
+	#insert room to scene
+	newRoom.branch_depth = get_parent().branch_depth + 1
+	add_child(newRoom)
+	has_spawned = true
+
+#if this node collides with another spawner node (which means on the next turn they will have to share the same cell, deletes parents and tries again as to avoid conflict
+func _on_area_entered(area):
+	if (area.is_in_group("room_spawnpoint")):
+		if (get_parent().branch_depth >= area.get_parent().branch_depth):
+			if (get_parent().get_parent().has_spawned):
+				get_parent().get_parent().initiate_spawn_algorithm()
+				get_parent().queue_free()
+

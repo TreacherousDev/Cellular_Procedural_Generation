@@ -1,0 +1,18 @@
+[gd_scene load_steps=5 format=3 uid="uid://bjgtu5545yv4q"]
+
+[ext_resource type="Texture2D" uid="uid://vvawjwcdf5gv" path="res://Art/Rooms/room_l.png" id="1_gf0ml"]
+[ext_resource type="PackedScene" uid="uid://ggfjq3rm2d2s" path="res://Scenes/Rooms/room_base.tscn" id="1_kdn76"]
+[ext_resource type="PackedScene" uid="uid://cnqwm5up3l002" path="res://Scenes/room_spawner.tscn" id="2_rv6or"]
+[ext_resource type="Texture2D" uid="uid://c7s47o7q7mnrx" path="res://icon.svg" id="4_vs6hq"]
+
+[node name="Room" instance=ExtResource("1_kdn76")]
+
+[node name="Sprite2D" parent="." index="1"]
+texture = ExtResource("1_gf0ml")
+
+[node name="Left" parent="." index="2" instance=ExtResource("2_rv6or")]
+position = Vector2(-20, 0)
+
+[node name="Icon" type="Sprite2D" parent="." index="3"]
+scale = Vector2(0.1, 0.1)
+texture = ExtResource("4_vs6hq")
