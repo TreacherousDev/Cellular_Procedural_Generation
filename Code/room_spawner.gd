@@ -18,15 +18,13 @@ extends Area2D
 
 #dictionary for room numbers, calculated by getting the sum of bit flags of the room. (updownleft = 1 + 2 + 4 = 7)
 @onready var room_values = {1: up, 2:left, 3:upleft, 4:down, 5:updown, 6:downleft, 7:updownleft, 8:right, 9:upright, 10:leftright, 11:upleftright, 12:downright, 13:updownright, 14:downleftright, 15:updownleftright}
-
 #bit flag for directions
 var direction_number : int
 
 #declare map size
-var max_cell_count :int = 150
+var max_cell_count :int = 300
 
 func _ready():
-	await get_tree().physics_frame
 	set_direction()
 	initiate_spawn_algorithm()
 
@@ -49,9 +47,12 @@ func set_direction():
 
 #executes methods in order. this method is also called by a child when a spawning error occurs, reusing the code.
 func initiate_spawn_algorithm():
+	await get_tree().physics_frame
 	setup_variables()
 	detect_spawnable_areas()
-	spawn_rooms()
+	#entirely optional, but good for customization
+	manipulate_map()
+	call_deferred("spawn_rooms")
 
 #declare room variables
 var room
@@ -78,18 +79,14 @@ func detect_spawnable_areas():
 	if $Right.is_colliding() == false:
 		spawnable_locations.append(8)
 	spawnable_locations.append(direction_number)
-	
 	get_all_combinations(spawnable_locations)
 	
-	#entirely optional, but good for customization
-	manipulate_map()
-	
-	#remove closing rooms from list if other options are possible. this is to prevent the map from closing prematurely
-	if (spawnable_rooms.size() > 1):
-		spawnable_rooms.erase(1)
-		spawnable_rooms.erase(2)
-		spawnable_rooms.erase(4)
-		spawnable_rooms.erase(8)
+func delete_closer_rooms_from_set():
+	if spawnable_rooms.size() > 1:
+		spawnable_rooms.erase(up)
+		spawnable_rooms.erase(left)
+		spawnable_rooms.erase(down)
+		spawnable_rooms.erase(right)
 
 #MUST READ!!!
 #manipulate map generation with custom room pool, branch_depth can be used as a condition for more complex shaped maps
@@ -97,21 +94,26 @@ func detect_spawnable_areas():
 #second number dictates how many times the value should be inserted (more times = better chance of spawning).
 #if you dont want any modifications, clear function body and replace it with pass instead
 func manipulate_map():
-	if get_parent().branch_depth < 6:
-		increase_spawn_frequency(5, 1)
-		increase_spawn_frequency(10, 80)
-	if get_parent().branch_depth > 6 and get_parent().branch_depth < 10:
-		increase_spawn_frequency(7, 4)
-		increase_spawn_frequency(11, 9)
-		increase_spawn_frequency(13, 2)
-		increase_spawn_frequency(14, 4)
+	pass
+	#EDITABLE PORTION
+	#USE THIS TO MODIFY SPAWN CONDITIONS
+	
+	add_room_to_pool(upleft, 3)
+	add_room_to_pool(upright, 3)
+	add_room_to_pool(downleft, 3)
+	add_room_to_pool(downright, 3)
 
-#increases the pick chance of a certain room by putting more of it in the selection pool
-func increase_spawn_frequency(room_type: int, frequency: int):
+
+
+#methods to add or delete rooms from selection pool
+func add_room_to_pool(room_type: PackedScene, frequency: int):
 	if (spawnable_rooms.has(room_type)):
 		while (frequency > 0):
 			spawnable_rooms.append(room_type)
 			frequency -= 1
+func delete_room_from_pool(room_type: PackedScene):
+	if (spawnable_rooms.size() > 1):
+		spawnable_rooms.erase(room_type)
 
 #returns an array of all possible spawnable rooms given the preconditions
 func get_all_combinations(spawn_locs):
@@ -121,12 +123,11 @@ func get_all_combinations(spawn_locs):
 #defines the loop that iterates through possible spawnable rooms
 func generate_combinations(spawn_locs, current_combination, index, result):
 	if index == spawn_locs.size():
-		if current_combination.size() > 0:
-			var group_sum = 0
-			if current_combination.has(direction_number):
-				for num in current_combination:
-					group_sum += num
-				spawnable_rooms.append(group_sum)
+		if current_combination.has(direction_number):
+			var sum = 0
+			for num in current_combination:
+				sum += num
+			spawnable_rooms.append(room_values[sum])
 		return
 
 	# Include current element in the combination
@@ -136,48 +137,53 @@ func generate_combinations(spawn_locs, current_combination, index, result):
 	generate_combinations(spawn_locs, current_combination, index + 1, result)
 
 #rng for random selection
-#has_spawned flag to prevent the object from spawning another room after it has already done so (see on_area_entered)
 var rng = RandomNumberGenerator.new()
-var has_spawned = false
 
 func spawn_rooms():
-	has_spawned = false
-	#1 physics frame is fastest possible time between iterations. Use a timer instead if you want slower intervals
-	await get_tree().physics_frame
+	if spawnable_rooms.size() == 1:
+		remove_from_group("active")
 
-	#selects a room to spawn based on the available room selection 
-	var newRoom
-	var cell_count = get_node("/root/MapGenerator/CanvasLayer/Label").count
-	var num = rng.randi_range(1, spawnable_rooms.size())
-	room = room_values[spawnable_rooms[num-1]]
+	var active_nodes = get_tree().get_nodes_in_group("active").size()
+	var cell_count = get_tree().get_nodes_in_group("room").size()
 	
+	#delete closing rooms from options if the map has a high tendency to close by chance
+	if (active_nodes <= (8)):
+		delete_closer_rooms_from_set()
+	
+	#selects a room to spawn based on the available room selection
+	var num = rng.randi_range(1, spawnable_rooms.size())
 	#spawns a branching room (if possible) if max rooms is not yet achieved, spawns a clsing room if it is.
 	if (cell_count < max_cell_count):
-		newRoom = room.instantiate()
+		room = spawnable_rooms[num-1]
 	else:
-		newRoom = room_values[direction_number].instantiate()
+		room = room_values[direction_number]
+	var newRoom = room.instantiate()
 	
 	#deletes the matching spawning node of the child to prevent it from attempting to spawn a room ontop of its parent
+	#free is used instead of queue_free because we dont want it to be added to the active node count, causing the algorithm to break
 	match(direction_number):
 		1:
-			newRoom.get_node("Up").queue_free()
+			newRoom.get_node("Up").free()
 		2:
-			newRoom.get_node("Left").queue_free()
+			newRoom.get_node("Left").free()
 		4:
-			newRoom.get_node("Down").queue_free()
+			newRoom.get_node("Down").free()
 		8:
-			newRoom.get_node("Right").queue_free()
+			newRoom.get_node("Right").free()
 	
-	#insert room to scene
+	#insert room to scene and apply respective branch depth
+	#branch depth can be used as a parameter for custom map designs (see manipulate map function)
 	newRoom.branch_depth = get_parent().branch_depth + 1
 	add_child(newRoom)
-	has_spawned = true
+	remove_from_group("active")
 
 #if this node collides with another spawner node (which means on the next turn they will have to share the same cell, deletes parents and tries again as to avoid conflict
 func _on_area_entered(area):
 	if (area.is_in_group("room_spawnpoint")):
 		if (get_parent().branch_depth >= area.get_parent().branch_depth):
-			if (get_parent().get_parent().has_spawned):
-				get_parent().get_parent().initiate_spawn_algorithm()
+			if (!get_parent().get_parent().is_in_group("active")):
+				remove_from_group("active")
+				get_parent().get_parent().add_to_group("active")
+				get_parent().get_parent().call_deferred("initiate_spawn_algorithm")
 				get_parent().queue_free()
 
