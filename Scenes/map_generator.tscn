@@ -14,12 +14,4 @@ scale = Vector2(3, 3)
 text = "Cell Count:"
 
 [node name="Camera2D" type="Camera2D" parent="."]
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-zoom = Vector2(1.5, 1.5)
-=======
-zoom = Vector2(2, 2)
->>>>>>> Stashed changes
-=======
 zoom = Vector2(1.8, 1.8)
->>>>>>> d67189e2e89fe6132e188b58a4e956c88d6bae8b

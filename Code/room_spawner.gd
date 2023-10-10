@@ -24,23 +24,12 @@ var direction_number : int
 #rng for random selection
 var rng = RandomNumberGenerator.new()
 #declare map size
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-var max_cell_count :int = 300
-=======
 var max_cell_count : int = 100
-=======
-var max_cell_count : int = 75
->>>>>>> d67189e2e89fe6132e188b58a4e956c88d6bae8b
 
 #declare room variables
 var room
 var spawnable_locations := []
 var spawnable_rooms := []
-<<<<<<< HEAD
->>>>>>> Stashed changes
-=======
->>>>>>> d67189e2e89fe6132e188b58a4e956c88d6bae8b
 
 func _ready():
 	initiate_spawn_algorithm()
@@ -114,20 +103,10 @@ func delete_closer_rooms_from_set():
 #manipulate map generation with custom room pool, branch_depth can be used as a condition for more complex shaped maps
 #if you dont want any modifications, clear / comment function body and replace it with pass instead
 func manipulate_map():
+	pass
 	#EDITABLE PORTION
 	#USE THIS TO MODIFY SPAWN CONDITIONS
 	
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-	add_room_to_pool(upleft, 3)
-	add_room_to_pool(upright, 3)
-	add_room_to_pool(downleft, 3)
-	add_room_to_pool(downright, 3)
-
-
-=======
-=======
->>>>>>> d67189e2e89fe6132e188b58a4e956c88d6bae8b
 	#FOR add_room_to_pool(room_type: PackedScene, frequency: int)
 	#first parameter is the room type you want to manipulate
 	#second is a number dictates how many times the value should be inserted (more times = better chance of spawning)
@@ -138,18 +117,10 @@ func manipulate_map():
 	#you can use if statements that checks for certain variables like the branch depth
 	#or the node's global position to manipulate how the map looks 
 	
-<<<<<<< HEAD
-	#sample, uncomment to implement modification:
+	#sample: (uncomment to apply modification)
 	#if get_parent().branch_depth < 5:
 	#	add_room_to_pool(updown, 10)
 	#	add_room_to_pool(leftright, 10)
->>>>>>> Stashed changes
-=======
-	#sample:
-	if get_parent().branch_depth < 5:
-		add_room_to_pool(updown, 10)
-		add_room_to_pool(leftright, 10)
->>>>>>> d67189e2e89fe6132e188b58a4e956c88d6bae8b
 
 #methods to add or delete rooms from selection pool
 #use these inside manipulate_map()
@@ -170,7 +141,6 @@ func delete_room_from_pool(room_type: PackedScene):
 func get_all_combinations(spawn_locs):
 	generate_combinations(spawn_locs, [], 0, spawnable_rooms)
 	return spawnable_rooms
-
 #defines the loop that iterates through possible spawnable rooms
 func generate_combinations(spawn_locs, current_combination, index, result):
 	if index == spawn_locs.size():
@@ -198,7 +168,7 @@ func spawn_rooms():
 	var cell_count = get_tree().get_nodes_in_group("room").size()
 	
 	#delete closing rooms from options if the map has a high tendency to close by chance
-	if (active_nodes <= (5)):
+	if (active_nodes <= (8)):
 		delete_closer_rooms_from_set()
 	
 	#SPAWNING PROCESS
@@ -233,16 +203,7 @@ func spawn_rooms():
 	#once finished spawning, make inactive.
 	remove_from_group("active")
 
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-#if this node collides with another spawner node (which means on the next turn they will have to share the same cell, deletes parents and tries again as to avoid conflict
-=======
-#if this node collides with another spawner node (which means on the next turn they will have to share the same cell),
-#deletes parents and tries again as to avoid conflict and infinite death loops
->>>>>>> Stashed changes
-=======
 #if this node collides with another spawner node (which means on the next turn they will have to share the same cell), deletes parents and tries again as to avoid conflict
->>>>>>> d67189e2e89fe6132e188b58a4e956c88d6bae8b
 func _on_area_entered(area):
 	if (area.is_in_group("room_spawnpoint")):
 		if (get_parent().branch_depth >= area.get_parent().branch_depth):
