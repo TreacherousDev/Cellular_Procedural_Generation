@@ -22,7 +22,16 @@ extends Area2D
 var direction_number : int
 
 #declare map size
+<<<<<<< Updated upstream
 var max_cell_count :int = 300
+=======
+var max_cell_count : int = 100
+
+#declare room variables
+var room
+var spawnable_locations := []
+var spawnable_rooms := []
+>>>>>>> Stashed changes
 
 func _ready():
 	set_direction()
@@ -98,12 +107,29 @@ func manipulate_map():
 	#EDITABLE PORTION
 	#USE THIS TO MODIFY SPAWN CONDITIONS
 	
+<<<<<<< Updated upstream
 	add_room_to_pool(upleft, 3)
 	add_room_to_pool(upright, 3)
 	add_room_to_pool(downleft, 3)
 	add_room_to_pool(downright, 3)
 
 
+=======
+	#FOR add_room_to_pool(room_type: PackedScene, frequency: int)
+	#first parameter is the room type you want to manipulate
+	#second is a number dictates how many times the value should be inserted (more times = better chance of spawning)
+	
+	#FOR delete_room_from_pool(room_type: PackedScene)
+	#parameter is the room you want to exclude from spawning
+	
+	#you can use if statements that checks for certain variables like the branch depth
+	#or the node's global position to manipulate how the map looks 
+	
+	#sample, uncomment to implement modification:
+	#if get_parent().branch_depth < 5:
+	#	add_room_to_pool(updown, 10)
+	#	add_room_to_pool(leftright, 10)
+>>>>>>> Stashed changes
 
 #methods to add or delete rooms from selection pool
 func add_room_to_pool(room_type: PackedScene, frequency: int):
@@ -147,7 +173,7 @@ func spawn_rooms():
 	var cell_count = get_tree().get_nodes_in_group("room").size()
 	
 	#delete closing rooms from options if the map has a high tendency to close by chance
-	if (active_nodes <= (8)):
+	if (active_nodes <= (5)):
 		delete_closer_rooms_from_set()
 	
 	#selects a room to spawn based on the available room selection
@@ -177,7 +203,12 @@ func spawn_rooms():
 	add_child(newRoom)
 	remove_from_group("active")
 
+<<<<<<< Updated upstream
 #if this node collides with another spawner node (which means on the next turn they will have to share the same cell, deletes parents and tries again as to avoid conflict
+=======
+#if this node collides with another spawner node (which means on the next turn they will have to share the same cell),
+#deletes parents and tries again as to avoid conflict and infinite death loops
+>>>>>>> Stashed changes
 func _on_area_entered(area):
 	if (area.is_in_group("room_spawnpoint")):
 		if (get_parent().branch_depth >= area.get_parent().branch_depth):

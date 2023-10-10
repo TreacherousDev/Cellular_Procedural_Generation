@@ -16,4 +16,8 @@ text = "Cell Count:"
 script = ExtResource("2_mipsd")
 
 [node name="Camera2D" type="Camera2D" parent="."]
+<<<<<<< Updated upstream
 zoom = Vector2(1.5, 1.5)
+=======
+zoom = Vector2(2, 2)
+>>>>>>> Stashed changes
