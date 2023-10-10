@@ -1,7 +1,6 @@
-[gd_scene load_steps=3 format=3 uid="uid://m4wv4fs4u5q1"]
+[gd_scene load_steps=2 format=3 uid="uid://m4wv4fs4u5q1"]
 
 [ext_resource type="Script" path="res://Code/map_generator.gd" id="1_18msb"]
-[ext_resource type="Script" path="res://Code/cell_count.gd" id="2_mipsd"]
 
 [node name="MapGenerator" type="Node2D"]
 script = ExtResource("1_18msb")
@@ -13,11 +12,14 @@ offset_right = 40.0
 offset_bottom = 23.0
 scale = Vector2(3, 3)
 text = "Cell Count:"
-script = ExtResource("2_mipsd")
 
 [node name="Camera2D" type="Camera2D" parent="."]
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 zoom = Vector2(1.5, 1.5)
 =======
 zoom = Vector2(2, 2)
 >>>>>>> Stashed changes
+=======
+zoom = Vector2(1.8, 1.8)
+>>>>>>> d67189e2e89fe6132e188b58a4e956c88d6bae8b
