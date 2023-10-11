@@ -18,18 +18,16 @@ extends Area2D
 
 #dictionary for room numbers, calculated by getting the sum of bit flags of the room. (updownleft = 1 + 2 + 4 = 7)
 @onready var room_values = {1: up, 2:left, 3:upleft, 4:down, 5:updown, 6:downleft, 7:updownleft, 8:right, 9:upright, 10:leftright, 11:upleftright, 12:downright, 13:updownright, 14:downleftright, 15:updownleftright}
-#bit flag for directions
-var direction_number : int
 
-#rng for random selection
-var rng = RandomNumberGenerator.new()
 #declare map size
-var max_cell_count : int = 100
+var max_cell_count : int = 200
 
-#declare room variables
-var room
+#declare other room variables
+var room : PackedScene
 var spawnable_locations := []
 var spawnable_rooms := []
+var direction_number : int
+var rng = RandomNumberGenerator.new()
 
 func _ready():
 	initiate_spawn_algorithm()
@@ -52,8 +50,6 @@ func initiate_spawn_algorithm():
 	#only spawn rooms at the end of the frame to prevent issues with calculations
 	call_deferred("spawn_rooms")
 
-#sets the must-have direction of the room that this node should spawn (opposite of current)
-#assigns a bit flag for each direction
 func set_direction():
 	match(position):
 		Vector2(0, 20):
@@ -69,7 +65,7 @@ func set_direction():
 			#Right
 			direction_number = 8
 
-#resets state of arrays to empty in case code needs to be reused
+#resets state of arrays to empty in case code needs to be rerun
 func setup_variables():
 	spawnable_locations = []
 	spawnable_rooms = []
@@ -91,8 +87,7 @@ func detect_spawnable_areas():
 	spawnable_locations.append(direction_number)
 	get_all_combinations(spawnable_locations)
 
-#used to force the branch to only spawn non-closing rooms
-func delete_closer_rooms_from_set():
+func delete_closing_rooms_from_set():
 	if spawnable_rooms.size() > 1:
 		spawnable_rooms.erase(up)
 		spawnable_rooms.erase(left)
@@ -100,27 +95,26 @@ func delete_closer_rooms_from_set():
 		spawnable_rooms.erase(right)
 
 #MUST READ!!!
-#manipulate map generation with custom room pool, branch_depth can be used as a condition for more complex shaped maps
+#manipulate map generation with custom room pool
 #if you dont want any modifications, clear / comment function body and replace it with pass instead
 func manipulate_map():
 	pass
 	#EDITABLE PORTION
 	#USE THIS TO MODIFY SPAWN CONDITIONS
 	
-	#FOR add_room_to_pool(room_type: PackedScene, frequency: int)
-	#first parameter is the room type you want to manipulate
-	#second is a number dictates how many times the value should be inserted (more times = better chance of spawning)
+	#for add_room_to_pool(), higher frequency = better chance of spawning
+	#you can use if statements that checks for certain variables like depth or position to manipulate how the map looks
 	
-	#FOR delete_room_from_pool(room_type: PackedScene)
-	#parameter is the room you want to exclude from spawning
+	#sample: 1 (uncomment to apply modification)
+	#increases the likelihood of generating long corridors close to the origin
+#	if get_parent().branch_depth < 4:
+#		add_room_to_pool(updown, 10)
+#		add_room_to_pool(leftright, 10)
 	
-	#you can use if statements that checks for certain variables like the branch depth
-	#or the node's global position to manipulate how the map looks 
-	
-	#sample: (uncomment to apply modification)
-	#if get_parent().branch_depth < 5:
-	#	add_room_to_pool(updown, 10)
-	#	add_room_to_pool(leftright, 10)
+	#sample 2:
+	#prevents the map from generating any further right
+#	if global_position.x > 60:
+#		force_spawn_closing_room()
 
 #methods to add or delete rooms from selection pool
 #use these inside manipulate_map()
@@ -132,17 +126,20 @@ func add_room_to_pool(room_type: PackedScene, frequency: int):
 func delete_room_from_pool(room_type: PackedScene):
 	if (spawnable_rooms.size() > 1):
 		spawnable_rooms.erase(room_type)
-
+func force_spawn_closing_room():
+	spawnable_rooms.clear()
+	spawnable_rooms.append(room_values[direction_number])
 
 #the next 2 functions are some magic math stuff that makes it so that the node can only spawn rooms 
-#that are appropriate according to its von-Neumann neighbors.
+#that are appropriate according to its von-Neumann neighbors. 
+#REFERENCE: see detect_spawnable_areas()
 
 #returns an array of all possible spawnable rooms based on the raycast outputs
-func get_all_combinations(spawn_locs):
+func get_all_combinations(spawn_locs : Array):
 	generate_combinations(spawn_locs, [], 0, spawnable_rooms)
 	return spawnable_rooms
 #defines the loop that iterates through possible spawnable rooms
-func generate_combinations(spawn_locs, current_combination, index, result):
+func generate_combinations(spawn_locs: Array, current_combination: Array, index: int, result: Array):
 	if index == spawn_locs.size():
 		if current_combination.has(direction_number):
 			var sum = 0
@@ -150,12 +147,9 @@ func generate_combinations(spawn_locs, current_combination, index, result):
 				sum += num
 			spawnable_rooms.append(room_values[sum])
 		return
-
-	# Include current element in the combination
 	generate_combinations(spawn_locs, current_combination + [spawn_locs[index]], index + 1, result)
-	
-	# Exclude current element from the combination
 	generate_combinations(spawn_locs, current_combination, index + 1, result)
+
 
 #self explanatory
 func spawn_rooms():
@@ -167,14 +161,16 @@ func spawn_rooms():
 	var active_nodes = get_tree().get_nodes_in_group("active").size()
 	var cell_count = get_tree().get_nodes_in_group("room").size()
 	
-	#delete closing rooms from options if the map has a high tendency to close by chance
+	#PURPOSE: delete closing rooms from options if the map has a high tendency to close by chance 
+	#if you have lots of functions in manipulate_map, especially delete and force spawn, increasing number is recommended
+	#number must be between 1 and max_cell_count. if it's equal or close to max_cell_count, it just means that closing rooms
+	#wont be spawned till the end of the generation, unless its the only option. 
+	#experiment with the number yourself to get a better feel for it
 	if (active_nodes <= (8)):
-		delete_closer_rooms_from_set()
+		delete_closing_rooms_from_set()
 	
 	#SPAWNING PROCESS
-	#selects a room to spawn based on the available room selection
 	var num = rng.randi_range(1, spawnable_rooms.size())
-	
 	#spawns a random available rooom if max rooms is not yet achieved, spawns a closing room if it is.
 	if (cell_count < max_cell_count):
 		room = spawnable_rooms[num-1]
@@ -194,13 +190,8 @@ func spawn_rooms():
 			newRoom.get_node("Down").free()
 		8:
 			newRoom.get_node("Right").free()
-	
-	#insert room to scene and apply respective branch depth
-	#branch depth can be used as a parameter for custom map designs (see manipulate map function)
 	newRoom.branch_depth = get_parent().branch_depth + 1
 	add_child(newRoom)
-	
-	#once finished spawning, make inactive.
 	remove_from_group("active")
 
 #if this node collides with another spawner node (which means on the next turn they will have to share the same cell), deletes parents and tries again as to avoid conflict

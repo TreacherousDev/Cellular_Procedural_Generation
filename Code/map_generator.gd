@@ -8,15 +8,17 @@ extends Node2D
 #by default its set to the room with 4 open directions
 var room = load("res://Scenes/Rooms/room_udlr.tscn") 
 
+
 var count := 0
 var active := 0
 var iterations : int = 0
 
+#spawns a room on first play to start the algorithm, deletes it and retries on clicking enter.
 func _ready():
 	create_map()
 
 func _process(delta):
-	$CanvasLayer/Label.text = "Cell Count: " + str(count) + "\nActive Nodes: " + str(active) + "\nIterations: " + str(iterations)
+	$CanvasLayer/Label.text = " Cell Count: " + str(count) + "\n Active Nodes: " + str(active) + "\n Iterations: " + str(iterations)
 	
 	if Input.is_action_just_pressed("ui_accept"):
 		reset_map()
@@ -27,9 +29,9 @@ func _physics_process(delta):
 	active = get_tree().get_nodes_in_group("active").size()
 
 func create_map():
-	#spawns a room on first play to start the algorithm, deletes it and retries on clicking enter.
 	var newRoom = room.instantiate()
 	add_child(newRoom)
+	#set main room color to green
 	newRoom.get_node("Sprite2D").modulate = Color(0,1,0)
 
 func reset_map():

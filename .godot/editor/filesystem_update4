@@ -6,3 +6,4 @@ res://Scenes/Rooms/room_l.tscn
 res://Scenes/Rooms/room_r.tscn
 res://Scenes/Rooms/room_u.tscn
 res://Scenes/map_generator.tscn
+res://Code/map_generator.gd
