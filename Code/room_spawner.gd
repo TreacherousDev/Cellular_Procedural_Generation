@@ -27,7 +27,7 @@ var room : PackedScene
 var spawnable_locations := []
 var spawnable_rooms := []
 var direction_number : int
-var rng = RandomNumberGenerator.new()
+var rng := RandomNumberGenerator.new()
 
 func _ready():
 	initiate_spawn_algorithm()
@@ -149,7 +149,6 @@ func generate_combinations(spawn_locs: Array, current_combination: Array, index:
 		return
 	generate_combinations(spawn_locs, current_combination + [spawn_locs[index]], index + 1, result)
 	generate_combinations(spawn_locs, current_combination, index + 1, result)
-
 
 #self explanatory
 func spawn_rooms():
