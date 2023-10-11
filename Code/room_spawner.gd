@@ -50,6 +50,9 @@ func initiate_spawn_algorithm():
 	#only spawn rooms at the end of the frame to prevent issues with calculations
 	call_deferred("spawn_rooms")
 
+#assigns bit flags for each direction
+#the opposite direction of this node relative to its parent
+#i.e: a room with a left branch should spawn a room with a right branch to match and connect
 func set_direction():
 	match(position):
 		Vector2(0, 20):
@@ -107,14 +110,14 @@ func manipulate_map():
 	
 	#sample: 1 (uncomment to apply modification)
 	#increases the likelihood of generating long corridors close to the origin
-#	if get_parent().branch_depth < 4:
-#		add_room_to_pool(updown, 10)
-#		add_room_to_pool(leftright, 10)
+	#if get_parent().branch_depth < 4:
+	#	add_room_to_pool(updown, 10)
+	#	add_room_to_pool(leftright, 10)
 	
 	#sample 2:
 	#prevents the map from generating any further right
-#	if global_position.x > 60:
-#		force_spawn_closing_room()
+	#if global_position.x > 60:
+	#	force_spawn_closing_room()
 
 #methods to add or delete rooms from selection pool
 #use these inside manipulate_map()
@@ -129,6 +132,7 @@ func delete_room_from_pool(room_type: PackedScene):
 func force_spawn_closing_room():
 	spawnable_rooms.clear()
 	spawnable_rooms.append(room_values[direction_number])
+
 
 #the next 2 functions are some magic math stuff that makes it so that the node can only spawn rooms 
 #that are appropriate according to its von-Neumann neighbors. 
@@ -150,10 +154,11 @@ func generate_combinations(spawn_locs: Array, current_combination: Array, index:
 	generate_combinations(spawn_locs, current_combination + [spawn_locs[index]], index + 1, result)
 	generate_combinations(spawn_locs, current_combination, index + 1, result)
 
+
 #self explanatory
 func spawn_rooms():
 	#since a spawnable_rooms size of 1 means that it only contains a closing room,
-	#so we remove it from the group of active nodes in advance
+	#we remove it from the group of active nodes in advance
 	if spawnable_rooms.size() == 1:
 		remove_from_group("active")
 
@@ -178,7 +183,7 @@ func spawn_rooms():
 		room = room_values[direction_number]
 	var newRoom = room.instantiate()
 	
-	#deletes the matching spawning node of the child to prevent it from attempting to spawn a room ontop of its parent
+	#deletes the matching spawner node of the child room to prevent it from attempting to spawn a room ontop of its parent
 	#free is used instead of queue_free because we dont want it to be added to the active node count, whihc will mess up with our calculations
 	match(direction_number):
 		1:
@@ -196,6 +201,8 @@ func spawn_rooms():
 #if this node collides with another spawner node (which means on the next turn they will have to share the same cell), deletes parents and tries again as to avoid conflict
 func _on_area_entered(area):
 	if (area.is_in_group("room_spawnpoint")):
+		#only deletes rooms of equal or deeper branch depth. 
+		#so that if a room collides with a higher branch, it doesnt delete the higher branch and its 100+ children 
 		if (get_parent().branch_depth >= area.get_parent().branch_depth):
 			if (!get_parent().get_parent().is_in_group("active")):
 				remove_from_group("active")
