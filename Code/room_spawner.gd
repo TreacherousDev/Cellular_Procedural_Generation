@@ -20,7 +20,7 @@ extends Area2D
 @onready var room_values = {1: up, 2:left, 3:upleft, 4:down, 5:updown, 6:downleft, 7:updownleft, 8:right, 9:upright, 10:leftright, 11:upleftright, 12:downright, 13:updownright, 14:downleftright, 15:updownleftright}
 
 #declare map size
-var max_cell_count : int = 200
+var max_cell_count : int = 300
 
 #declare other room variables
 var room : PackedScene
@@ -74,6 +74,7 @@ func setup_variables():
 	spawnable_rooms = []
 	
 #gets the max number of directions that the spawned room can have based on von neumann neighborhood
+#only emable raycasts during calculation to prevent unnecessary callbacks
 func detect_spawnable_areas():
 	$Up.force_raycast_update()
 	if $Up.is_colliding() == false:
@@ -87,6 +88,13 @@ func detect_spawnable_areas():
 	$Right.force_raycast_update()
 	if $Right.is_colliding() == false:
 		spawnable_locations.append(8)
+	
+	$Up.set_enabled(false)
+	$Left.set_enabled(false)
+	$Down.set_enabled(false)
+	$Right.set_enabled(false)
+	
+	#include parent direction. by default it always returns true because the ray hits its parent room
 	spawnable_locations.append(direction_number)
 	get_all_combinations(spawnable_locations)
 
@@ -115,8 +123,10 @@ func manipulate_map():
 	#	add_room_to_pool(leftright, 10)
 	
 	#sample 2:
-	#prevents the map from generating any further right
-	#if global_position.x > 60:
+	#prevents the map from generating any further right or down
+	#if global_position.x > 0:
+	#	force_spawn_closing_room()
+	#if global_position.y > 0:
 	#	force_spawn_closing_room()
 
 #methods to add or delete rooms from selection pool
@@ -170,7 +180,7 @@ func spawn_rooms():
 	#number must be between 1 and max_cell_count. if it's equal or close to max_cell_count, it just means that closing rooms
 	#wont be spawned till the end of the generation, unless its the only option. 
 	#experiment with the number yourself to get a better feel for it
-	if (active_nodes <= (8)):
+	if (active_nodes <= (10)):
 		delete_closing_rooms_from_set()
 	
 	#SPAWNING PROCESS
@@ -195,6 +205,7 @@ func spawn_rooms():
 		8:
 			newRoom.get_node("Right").free()
 	newRoom.branch_depth = get_parent().branch_depth + 1
+	print(newRoom.branch_depth)
 	add_child(newRoom)
 	remove_from_group("active")
 

@@ -14,4 +14,4 @@ scale = Vector2(3, 3)
 text = "Cell Count:"
 
 [node name="Camera2D" type="Camera2D" parent="."]
-zoom = Vector2(1.8, 1.8)
+zoom = Vector2(1.4, 1.4)
